@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex">
+  <title>deux par deux - QuickBooks CLI callback</title>
+</head>
+<body>
+  Returning to the local QuickBooks CLI... If nothing happens, start the CLI first: python dpd-tools/tools/qbo_q.py auth
+  <script>
+    const query = location.search;
+    if (query.includes("code=") && query.includes("state=")) {
+      location.replace("http://localhost:8766/callback" + location.search);
+    } else {
+      document.body.textContent = "Missing OAuth parameters.";
+    }
+  </script>
+</body>
+</html>
