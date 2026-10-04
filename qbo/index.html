@@ -1,18 +1,45 @@
 <!doctype html>
+<!--
+  Author: Instinct agent for Zacharie Elmaleh (deux par deux). Created: 2026-10-04.
+  Purpose: static QuickBooks OAuth callback bounce page, the redirect URI registered with Intuit.
+  Why it exists: Intuit only redirects to a registered https URL, but the local CLI listens on localhost.
+  Two modes:
+   1) PC flow (state NOT starting with "phone-"): unchanged. Forwards the browser to
+      http://localhost:8766/callback with the same query string.
+   2) Phone flow (state starting with "phone-"): no localhost exists on a phone, so we do NOT redirect.
+      We show the company name (taken from the state, e.g. phone-ca) and the one-time code on screen
+      so Zac can copy the address bar URL back. The code is single use and short lived.
+  Edge cases: missing code/state shows "Missing OAuth parameters."; Intuit error responses
+  (error=...) are shown as text; realmId (the company id) is shown when present.
+  Nothing is stored or sent anywhere. Text is set with textContent to avoid HTML injection.
+-->
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>deux par deux - QuickBooks CLI callback</title>
 </head>
-<body>
-  Returning to the local QuickBooks CLI... If nothing happens, start the CLI first: python dpd-tools/tools/qbo_q.py auth
+<body style="font-family:sans-serif;padding:16px;word-break:break-all">
+  <div id="msg">Returning to the local QuickBooks CLI... If nothing happens, start the CLI first: python dpd-tools/tools/qbo_q.py auth</div>
   <script>
-    const query = location.search;
-    if (query.includes("code=") && query.includes("state=")) {
-      location.replace("http://localhost:8766/callback" + location.search);
+    const p = new URLSearchParams(location.search);
+    const state = p.get("state") || "";
+    const msg = document.getElementById("msg");
+    if (p.get("error")) {
+      msg.textContent = "QuickBooks returned an error: " + p.get("error");
+    } else if (p.get("code") && state) {
+      if (state.indexOf("phone-") === 0) {
+        // Phone flow: show instead of redirect.
+        const company = state.slice(6).split("-")[0];
+        msg.textContent = "Approved for company: " + company +
+          ". Copy the full address of this page (the web address at the top) and send it back. " +
+          "Code: " + p.get("code") + (p.get("realmId") ? " | Company id: " + p.get("realmId") : "");
+      } else if (location.search.includes("code=") && location.search.includes("state=")) {
+        location.replace("http://localhost:8766/callback" + location.search);
+      }
     } else {
-      document.body.textContent = "Missing OAuth parameters.";
+      msg.textContent = "Missing OAuth parameters.";
     }
   </script>
 </body>
